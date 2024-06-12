@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book API Client</title>
+</head>
+<body>
+  <h1>Book API Client</h1>
+  <button onclick="getAllBooks()">Get All Books</button>
+  <button onclick="getBookByISBN()">Get Book by ISBN</button>
+  <button onclick="getBooksByAuthor()">Get Books by Author</button>
+  <button onclick="getBooksByTitle()">Get Books by Title</button>
+  <button onclick="getBookReview()">Get Book Review</button>
+
+  <h2>Register New User</h2>
+  <form id="registerForm">
+    <label for="username">Username:</label>
+    <input type="text" id="username" name="username" required>
+    <br>
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password" required>
+    <br>
+    <button type="submit">Register</button>
+  </form>
+
+  <h2>Login User</h2>
+  <form id="loginForm">
+    <label for="loginUsername">Username:</label>
+    <input type="text" id="loginUsername" name="loginUsername" required>
+    <br>
+    <label for="loginPassword">Password:</label>
+    <input type="password" id="loginPassword" name="loginPassword" required>
+    <br>
+    <button type="submit">Login</button>
+  </form>
+
+  <h2>Add/Modify Book Review</h2>
+  <form id="reviewForm">
+    <label for="reviewIsbn">ISBN:</label>
+    <input type="text" id="reviewIsbn" name="reviewIsbn" required>
+    <br>
+    <label for="reviewContent">Review:</label>
+    <textarea id="reviewContent" name="reviewContent" required></textarea>
+    <br>
+    <button type="submit">Submit Review</button>
+  </form>
+
+  <h2>Delete Book Review</h2>
+  <form id="deleteReviewForm">
+    <label for="deleteIsbn">ISBN:</label>
+    <input type="text" id="deleteIsbn" name="deleteIsbn" required>
+    <br>
+    <button type="submit">Delete Review</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    async function getAllBooks() {
+      const response = await fetch('/api/books');
+      const data = await response.json();
+      document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+    }
+
+    async function getBookByISBN() {
+      const isbn = prompt('Enter ISBN:');
+      const response = await fetch(`/api/books/isbn/${isbn}`);
+      const data = await response.json();
+      document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+    }
+
+    async function getBooksByAuthor() {
+      const author = prompt('Enter Author:');
+      const response = await fetch(`/api/books/author/${author}`);
+      const data = await response.json();
+      document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+    }
+
+    async function getBooksByTitle() {
+      const title = prompt('Enter Title:');
+      const response = await fetch(`/api/books/title/${title}`);
+      const data = await response.json();
+      document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+    }
+
+    async function getBookReview() {
+      const isbn = prompt('Enter ISBN:');
+      const response = await fetch(`/api/books/review/${isbn}`);
+      const data = await response.json();
+      document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+    }
+
+    // Handle registration form submission
+    document.getElementById('Let's complete Task 9 by adding the functionality to delete a book review and creating the corresponding front-end form to handle this action.
+
+### Step 1: Add Delete Route for Book Reviews
+
+First, update your `server.js` to include the new endpoint for deleting book reviews.
+
+#### Updated `server.js`
+
+```javascript
+const express = require('express');
+const axios = require('axios');
+const path = require('path');
+const bodyParser = require('body-parser');
+
+const app = express();
+const PORT = 3001; // Ensure this is not conflicting with any other process
+const API_BASE_URL = 'https://openlibrary.org';
+
+// Use body-parser to parse JSON bodies
+app.use(bodyParser.json());
+
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve index.html at the root route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// In-memory storage for users and reviews
+const users = [];
+const reviews = {};
+
+// Endpoint to register a new user
+app.post('/api/register', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
+  users.push({ username, password });
+  res.status(201).json({ message: 'User registered successfully' });
+});
+
+// Endpoint to login a user
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  const user = users.find(u => u.username === username && u.password === password);
+  if (user) {
+    res.status(200).json({ message: 'Login successful' });
+  } else {
+    res.status(401).json({ error: 'Invalid username or password' });
+  }
+});
+
+// Endpoint to get all books
+app.get('/api/books', async (req, res) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/subjects/fiction.json?limit=10`);
+    res.json(response.data.works);
+  } catch (error) {
+    console.error('Error fetching the book list:', error);
+    res.status(500).send('Error fetching the book list');
+  }
+});
+
+// Endpoint to get book by ISBN
+app.get('/api/books/isbn/:isbn', async (req, res) => {
+  const { isbn } = req.params;
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
+    res.json(response.data[`ISBN:${isbn}`]);
+  } catch (error) {
+    console.error(`Error fetching book with ISBN ${isbn}:`, error);
+    res.status(500).send(`Error fetching book with ISBN ${isbn}`);
+  }
+});
+
+// Endpoint to get books by author
+app.get('/api/books/author/:author', async (req, res) => {
+  const { author } = req.params;
+  try {
+    const response = await axios.get(`${API_BASE_URL}/search.json?author=${author}`);
+    res.json(response.data.docs);
+  } catch (error) {
+    console.error(`Error fetching books by author ${author}:`, error);
+    res.status(500).send(`Error fetching books by author ${author}`);
+  }
+});
+
+// Endpoint to get books by title
+app.get('/api/books/title/:title', async (req, res) => {
+  const { title } = req.params;
+  try {
+    const response = await axios.get(`${API_BASE_URL}/search.json?title=${title}`);
+    res.json(response.data.docs);
+  } catch (error) {
+    console.error(`Error fetching books by title ${title}:`, error);
+    res.status(500).send(`Error fetching books by title ${title}`);
+  }
+});
+
+// Endpoint to get book review
+app.get('/api/books/review/:isbn', async (req, res) => {
+  const { isbn } = req.params;
+  try {
+    const review = reviews[isbn] || "No reviews found.";
+    res.json({ review });
+  } catch (error) {
+    console.error(`Error fetching review for book with ISBN ${isbn}:`, error);
+    res.status(500).send(`Error fetching review for book with ISBN ${isbn}`);
+  }
+});
+
+// Endpoint to add or modify a book review
+app.post('/api/books/review/:isbn', (req, res) => {
+  const { isbn } = req.params;
+  const { review } = req.body;
+  if (!review) {
+    return res.status(400).json({ error: 'Review content is required' });
+  }
+  reviews[isbn] = review;
+  res.status(201).json({ message: 'Review added/modified successfully' });
+});
+
+// Endpoint to delete a book review
+app.delete('/api/books/review/:isbn', (req, res) => {
+  const { isbn } = req.params;
+  if (reviews[isbn]) {
+    delete reviews[isbn];
+    res.status(200).json({ message: 'Review deleted successfully' });
+  } else {
+    res.status(404).json({ error: 'Review not found' });
+  }
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
